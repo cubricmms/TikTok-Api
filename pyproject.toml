@@ -3,14 +3,20 @@ name = "tiktok-api"
 version = "0.1.0"
 description = ""
 authors = ["Charles Jing <cjing@mintel.com>"]
-readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.10"
-requests = "^2.31.0"
-playwright = "==1.32.0"
 peewee = "^3.17.1"
+tiktokapi = "6.1.1"
+playwright = "=1.32.0"
 
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.6.2"
+black = "^24.2.0"
+flake8 = "^7.0.0"
+isort = "^5.13.2"
 
 [build-system]
 requires = ["poetry-core"]

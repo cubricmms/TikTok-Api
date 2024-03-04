@@ -1,0 +1,53 @@
+default_language_version:
+  python: python3.11
+default_stages: [commit, push]
+fail_fast: false
+minimum_pre_commit_version: 3.1.1
+repos:
+  - repo: https://github.com/floatingpurr/sync_with_poetry
+    rev: 1.1.0
+    hooks:
+      - id: sync_with_poetry
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+    - id: check-added-large-files
+    - id: check-ast
+    - id: check-case-conflict
+    - id: check-docstring-first
+    - id: check-merge-conflict
+    - id: check-json
+    - id: check-xml
+    - id: check-yaml
+    - id: check-toml
+    - id: debug-statements
+    - id: detect-aws-credentials
+      args: ["--allow-missing-credentials"]
+    - id: detect-private-key
+    - id: end-of-file-fixer
+    - id: mixed-line-ending
+      args: ['--fix=lf']
+    - id: trailing-whitespace
+  - repo: https://github.com/psf/black
+    rev: 24.2.0
+    hooks:
+    - id: black
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.0.0
+    hooks:
+    - id: flake8
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+    - id: isort
+      additional_dependencies: ["toml"]
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.6.0
+    hooks:
+      - id: hadolint-docker
+        name: Lint Dockerfiles
+        description: Runs hadolint Docker image to lint Dockerfiles
+        language: docker_image
+        types: ["dockerfile"]
+        entry: ghcr.io/hadolint/hadolint:v2.6.0 hadolint
+        exclude: ^docker/devtools/
