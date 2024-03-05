@@ -19,7 +19,6 @@ from tenacity import retry
 
 db = SqliteDatabase("infulencer.db")
 ms_token = os.environ.get("ms_token", "")
-channels = set()
 
 if os.environ.get("HTTP_PROXY", ""):
     print(f"Using HTTP_PROXY {os.environ['HTTP_PROXY']}")
@@ -97,7 +96,6 @@ async def trending_videos():
                         video_count=stats_info["videoCount"],
                     )
 
-                    channels.add(username)
                     print(f"Added {username} to the database")
                 cursor += 30
 
@@ -112,9 +110,6 @@ if __name__ == "__main__":
         asyncio.run(trending_videos())
     except KeyboardInterrupt:
         elapsed_time = time.time() - start_time
-        print(
-            f"The function took {elapsed_time} seconds to complete. "
-            f"Found {len(channels)} of new creators."
-        )
+        print(f"The function took {elapsed_time} seconds to complete. ")
         print("Nicely shutting down...")
         os._exit(42)
