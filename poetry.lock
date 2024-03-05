@@ -602,13 +602,13 @@ testing-integration = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "jar
 
 [[package]]
 name = "tiktokapi"
-version = "6.1.1"
+version = "6.2.1"
 description = "The Unofficial TikTok API Wrapper in Python 3."
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "TikTokApi-6.1.1-py3-none-any.whl", hash = "sha256:a2ebfbcc11eae1451223571f0bf12a34460b681b0924387bf090f03776d1eab2"},
-    {file = "TikTokApi-6.1.1.tar.gz", hash = "sha256:59d54809b29680d7bb4e496b0eedd6642ed2cf8d17d0084db55939ba71c9cebb"},
+    {file = "TikTokApi-6.2.1-py3-none-any.whl", hash = "sha256:5d6dbeff776bbcbb473a087162f8106d9cb1015a3114d9a63327bf6b14b11ae0"},
+    {file = "TikTokApi-6.2.1.tar.gz", hash = "sha256:e88a4720612f37162b190f986aa6bc945a952cc77cc488b0ceca6e37a8fe2d8c"},
 ]
 
 [package.dependencies]
@@ -677,4 +677,4 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "730247e02b163fcf0471bf2136e55c8896902341950b86be8e10b430b48f1c8b"
+content-hash = "8d4748df1495d684625ad26fad9ca51c4dd2637f1c9a39d052752fcaedd065e9"

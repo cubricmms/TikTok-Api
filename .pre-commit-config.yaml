@@ -36,11 +36,6 @@ repos:
     rev: 7.0.0
     hooks:
     - id: flake8
-  - repo: https://github.com/pycqa/isort
-    rev: 5.13.2
-    hooks:
-    - id: isort
-      additional_dependencies: ["toml"]
   - repo: https://github.com/hadolint/hadolint
     rev: v2.6.0
     hooks:

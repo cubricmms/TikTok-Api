@@ -1,91 +1,118 @@
 import asyncio
-import logging
+import json
 import os
 import time
-from pprint import pprint as print
 
-from peewee import CharField, Model, SqliteDatabase
+from peewee import (
+    BooleanField,
+    CharField,
+    ForeignKeyField,
+    IntegerField,
+    Model,
+    SqliteDatabase,
+    TextField,
+)
 from playwright.async_api import ProxySettings
 from TikTokApi import TikTokApi
+from TikTokApi.exceptions import EmptyResponseException
 
 db = SqliteDatabase("infulencer.db")
+ms_token = os.environ.get("ms_token", "")
+channels = set()
 
-if os.environ["HTTP_PROXY"]:
-    print(f"Using HTTP_PROXY {os.environ.get('HTTP_PROXY')}")
+if os.environ.get("HTTP_PROXY", ""):
+    print(f"Using HTTP_PROXY {os.environ['HTTP_PROXY']}")
     proxy_settings = ProxySettings(server=os.environ["HTTP_PROXY"])
 
 
 class User(Model):
-    name = CharField()
+    id = CharField()
+    bio_link = CharField()
+    nickname = CharField()
+    sec_uid = CharField()
+    secret = BooleanField()
+    signature = TextField()
+    unique_id = CharField(primary_key=True)
+    verified = BooleanField()
 
     class Meta:
-        database = db  # This model uses the "people.db" database.
+        database = db
 
 
-ms_token = os.environ.get(
-    "ms_token", ""
-)  # get your own ms_token from your cookies on tiktok.com
+class Stats(Model):
+    user = ForeignKeyField(User, backref="stats")
+    follower_count = IntegerField()
+    heart_count = IntegerField()
+    video_count = IntegerField()
 
-channels = set()
+    class Meta:
+        database = db
 
 
 async def trending_videos():
-    async with TikTokApi(logging_level=logging.DEBUG) as api:
-        try:
-            await api.create_sessions(
-                ms_tokens=[ms_token],
-                num_sessions=1,
-                sleep_after=3,
-                headless=True,
-                proxies=[proxy_settings],
-            )
+    async with TikTokApi() as api:
+        await api.create_sessions(
+            ms_tokens=[ms_token],
+            num_sessions=1,
+            sleep_after=3,
+            headless=True,
+            proxies=[proxy_settings],
+        )
 
-            tag = api.hashtag(name="lifestyle")
-            tag_info = await tag.info()
-            video_count = int(
-                tag_info.get("challengeInfo", {})
-                .get("statsV2", {})
-                .get("viewCount", {})
-            )
+        cursor = 0
+        while True:
+            # async for video in api.trending.videos(count=30, cursor=cursor):
+            async for video in api.trending.videos(count=30):
+                username = video.author.username
+                if not User.get_or_none(unique_id=username):
+                    user = api.user(username)
+                    try:
+                        data = await user.info()
+                    except (KeyError, TypeError, EmptyResponseException):
+                        continue
 
-            print(video_count)
-            start = 0
-            while video_count > 0:
-                # async for video in tag.videos(count=30, cursor=start):
-                async for video in api.trending.videos(count=30, cursor=start):
-                    username = video.author.username
-                    if username not in channels:
-                        channels.add(username)
-                        print(username)
-                    video_count -= 30
-                    start += 30
+                    # Parse the user info from the JSON data
+                    user_info = data["userInfo"]["user"]
+                    stats_info = data["userInfo"]["stats"]
 
-                    print(f"Remaining videos: {video_count}")
-        finally:
-            await api.close_sessions()
-            await api.stop_playwright()
+                    # Create a new User instance and save it to the database
+                    User.create(
+                        id=user_info["id"],
+                        bio_link=json.dumps(user_info.get("bioLink", "{}")),
+                        nickname=user_info["nickname"],
+                        sec_uid=user_info["secUid"],
+                        secret=user_info["secret"],
+                        signature=user_info["signature"],
+                        unique_id=user_info["uniqueId"],
+                        verified=user_info["verified"],
+                    )
+
+                    # Create a new Stats instance and save it to the database
+                    Stats.create(
+                        user=user,
+                        follower_count=stats_info["followerCount"],
+                        heart_count=stats_info["heartCount"],
+                        video_count=stats_info["videoCount"],
+                    )
+
+                    channels.add(username)
+                    print(f"Added {username} to the database")
+                cursor += 30
 
 
 if __name__ == "__main__":
-    # db.connect()
-    # db.create_tables([User])
-
-    # user = User(name='John Doe')
-    # user.save()
-
     try:
-        # Start the timer
+        db.connect()
+        print(User.select().count())
+        db.create_tables([User, Stats])
+
         start_time = time.time()
-
-        # Run the async function and wait for it to complete
         asyncio.run(trending_videos())
-
-        # Calculate the elapsed time
-        elapsed_time = time.time() - start_time
     except KeyboardInterrupt:
-        pass
-    finally:
+        elapsed_time = time.time() - start_time
         print(
-            f"The function took {elapsed_time} seconds to complete."
-            f"{len(channels)} of them."
+            f"The function took {elapsed_time} seconds to complete. "
+            f"Found {len(channels)} of new creators."
         )
+        print("Nicely shutting down...")
+        os._exit(42)
