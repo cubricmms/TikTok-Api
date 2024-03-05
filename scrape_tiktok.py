@@ -15,6 +15,7 @@ from peewee import (
 from playwright.async_api import ProxySettings
 from TikTokApi import TikTokApi
 from TikTokApi.exceptions import EmptyResponseException
+from tenacity import retry
 
 db = SqliteDatabase("infulencer.db")
 ms_token = os.environ.get("ms_token", "")
@@ -49,6 +50,7 @@ class Stats(Model):
         database = db
 
 
+@retry
 async def trending_videos():
     async with TikTokApi() as api:
         await api.create_sessions(
