@@ -14,11 +14,10 @@ from peewee import (
 )
 from playwright.async_api import ProxySettings
 from TikTokApi import TikTokApi
-from TikTokApi.exceptions import EmptyResponseException
-from tenacity import retry
+from tenacity import Retrying, RetryError, stop_after_attempt, retry
 
 db = SqliteDatabase("infulencer.db")
-ms_token = os.environ.get("ms_token", "")
+ms_token = os.environ.get("MSTOKEN", "")
 
 if os.environ.get("HTTP_PROXY", ""):
     print(f"Using HTTP_PROXY {os.environ['HTTP_PROXY']}")
@@ -54,9 +53,9 @@ async def trending_videos():
     async with TikTokApi() as api:
         await api.create_sessions(
             ms_tokens=[ms_token],
-            num_sessions=1,
+            num_sessions=2,
             sleep_after=3,
-            headless=True,
+            headless=False,
             proxies=[proxy_settings],
         )
 
@@ -67,9 +66,13 @@ async def trending_videos():
                 username = video.author.username
                 if not User.get_or_none(unique_id=username):
                     user = api.user(username)
+
                     try:
-                        data = await user.info()
-                    except (KeyError, TypeError, EmptyResponseException):
+                        for attempt in Retrying(stop=stop_after_attempt(5)):
+                            with attempt:
+                                data = await user.info()
+                    except RetryError:
+                        print(f"ERROR: fail to pull {username} from tiktok.")
                         continue
 
                     # Parse the user info from the JSON data
@@ -77,7 +80,7 @@ async def trending_videos():
                     stats_info = data["userInfo"]["stats"]
 
                     # Create a new User instance and save it to the database
-                    User.create(
+                    _user = User.create(
                         id=user_info["id"],
                         bio_link=json.dumps(user_info.get("bioLink", "{}")),
                         nickname=user_info["nickname"],
@@ -90,7 +93,7 @@ async def trending_videos():
 
                     # Create a new Stats instance and save it to the database
                     Stats.create(
-                        user=user,
+                        user=_user,
                         follower_count=stats_info["followerCount"],
                         heart_count=stats_info["heartCount"],
                         video_count=stats_info["videoCount"],
@@ -103,8 +106,8 @@ async def trending_videos():
 if __name__ == "__main__":
     try:
         db.connect()
-        print(User.select().count())
         db.create_tables([User, Stats])
+        print(User.select().count())
 
         start_time = time.time()
         asyncio.run(trending_videos())
